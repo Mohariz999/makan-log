@@ -1,0 +1,43 @@
+# Runs on every push to main (via a Cloud Build trigger connected to GitHub).
+# Each step must succeed before the next one starts, so failing tests stop the deploy.
+substitutions:
+  _REGION: asia-southeast1
+  _REPO: makan-repo
+  _SERVICE: makan-log
+  _IMAGE: ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_SERVICE}:${SHORT_SHA}
+
+steps:
+  - id: test
+    name: python:3.11-slim
+    entrypoint: sh
+    args: ["-c", "pip install --no-cache-dir -r requirements.txt && python -m pytest -q"]
+
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "${_IMAGE}", "."]
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: ["push", "${_IMAGE}"]
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_IMAGE}
+      - --region=${_REGION}
+      - --allow-unauthenticated
+      # One instance keeps us within the free Postgres connection limit and avoids
+      # two containers running migrations at the same time.
+      - --max-instances=1
+      - --set-secrets=DATABASE_URL=makan-database-url:latest,SECRET_KEY=makan-secret-key:latest
+
+images:
+  - ${_IMAGE}
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  dynamicSubstitutions: true

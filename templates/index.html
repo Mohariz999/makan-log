@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <form class="row g-2 align-items-end mb-3" method="get">
+      <div class="col-sm-5">
+        <label class="form-label small" for="centre">Hawker centre</label>
+        <select class="form-select" id="centre" name="centre">
+          <option value="">All</option>
+          {% for centre in centres %}
+            <option {% if filters.get('centre') == centre %}selected{% endif %}>{{ centre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label small" for="max_price">Max price</label>
+        <input class="form-control" id="max_price" name="max_price" type="number" min="0" step="0.5"
+               value="{{ filters.get('max_price', '') }}" placeholder="Any">
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label small" for="sort">Sort</label>
+        <select class="form-select" id="sort" name="sort">
+          {% for key, label in sorts.items() %}
+            <option value="{{ key }}" {% if filters.get('sort', 'rating') == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-2"><button class="btn btn-outline-primary w-100">Filter</button></div>
+    </form>
+
+    <div class="list-group">
+      {% for dish in dishes %}
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between">
+            <div>
+              <strong>{{ dish.name }}</strong>
+              <div class="small text-muted">{{ dish.stall.name }} · {{ dish.stall.hawker_centre }} · {{ dish.stall.cuisine }}</div>
+              {% if dish.notes %}<div class="small fst-italic mt-1">“{{ dish.notes }}”</div>{% endif %}
+            </div>
+            <div class="text-end">
+              <div class="stars" aria-label="{{ dish.rating }} out of 5">{{ '★' * dish.rating }}<span class="text-muted">{{ '★' * (5 - dish.rating) }}</span></div>
+              <div class="fw-semibold">{{ dish.price|sgd }}</div>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="list-group-item text-muted">No dishes match. <a href="{{ url_for('index') }}">Clear filters</a></div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header fw-semibold">Top stalls</div>
+      <ol class="list-group list-group-flush list-group-numbered">
+        {% for stall, average, count in leaderboard %}
+          <li class="list-group-item d-flex justify-content-between">
+            <div class="ms-2 me-auto">{{ stall.name }}<div class="small text-muted">{{ stall.hawker_centre }}</div></div>
+            <span class="badge text-bg-warning align-self-center">{{ '%.1f'|format(average) }} ★ · {{ count }}</span>
+          </li>
+        {% else %}
+          <li class="list-group-item text-muted">No stalls yet.</li>
+        {% endfor %}
+      </ol>
+    </div>
+    <p class="small text-muted mt-3">JSON API: <a href="{{ url_for('api_dishes') }}">/api/dishes</a> ·
+      <a href="{{ url_for('api_top_stalls') }}">/api/stalls/top</a></p>
+  </div>
+</div>
+{% endblock %}
