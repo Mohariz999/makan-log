@@ -35,6 +35,11 @@ def test_index_returns_200(client):
     assert client.get("/").status_code == 200
 
 
+def test_index_api_link_keeps_current_filters(client):
+    html = client.get("/?centre=Maxwell+Food+Centre&max_price=&sort=price").get_data(as_text=True)
+    assert "/api/dishes?centre=Maxwell+Food+Centre&amp;sort=price" in html
+
+
 def test_adding_a_dish_saves_it_and_reuses_the_stall(app, client):
     response = client.post("/dishes/new", data=dish())
     assert response.status_code == 302

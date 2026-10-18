@@ -63,8 +63,22 @@
         {% endfor %}
       </ol>
     </div>
-    <p class="small text-muted mt-3">JSON API: <a href="{{ url_for('api_dishes') }}">/api/dishes</a> ·
-      <a href="{{ url_for('api_top_stalls') }}">/api/stalls/top</a></p>
+    <div class="card mt-4">
+      <div class="card-header fw-semibold">JSON API</div>
+      <div class="list-group list-group-flush">
+        <a class="list-group-item list-group-item-action" href="{{ url_for('api_dishes', **api_filters) }}">
+          <span class="badge text-bg-success me-1">GET</span><code>/api/dishes</code>
+          <div class="small text-muted mt-1">
+            {% if api_filters %}The dishes shown, with your current filters{% else %}Every dish{% endif %}
+            · supports <code>centre</code>, <code>max_price</code>, <code>sort</code>
+          </div>
+        </a>
+        <a class="list-group-item list-group-item-action" href="{{ url_for('api_top_stalls') }}">
+          <span class="badge text-bg-success me-1">GET</span><code>/api/stalls/top</code>
+          <div class="small text-muted mt-1">Top 5 stalls by average rating</div>
+        </a>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

@@ -127,6 +127,7 @@ def create_app(test_config=None):
     db.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
+    app.json.compact = False  # indented JSON, readable when the API is opened in a browser
 
     @app.template_filter("sgd")
     def sgd(value):
@@ -137,7 +138,8 @@ def create_app(test_config=None):
         dishes = filtered_dishes(request.args).all()
         centres = [row[0] for row in db.session.query(Stall.hawker_centre).distinct().order_by(Stall.hawker_centre)]
         return render_template("index.html", dishes=dishes, leaderboard=stall_leaderboard(), centres=centres,
-                               sorts=SORTS, filters=request.args)
+                               sorts=SORTS, filters=request.args,
+                               api_filters={key: value for key, value in request.args.items() if value})
 
     @app.route("/dishes/new", methods=["GET", "POST"])
     def new_dish():
