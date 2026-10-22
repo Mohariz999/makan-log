@@ -10,7 +10,7 @@ steps:
   - id: test
     name: python:3.11-slim
     entrypoint: sh
-    args: ["-c", "pip install --no-cache-dir -r requirements.txt && python -m pytest -q"]
+    args: ["-c", "pip install --no-cache-dir -r requirements-dev.txt && python -m pytest -q"]
 
   - id: build
     name: gcr.io/cloud-builders/docker
