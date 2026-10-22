@@ -1,36 +1,74 @@
 # 🍜 Makan Log
 
-Rate hawker dishes: add what you ate, filter by hawker centre and price, and see the top-rated stalls.
-Built with Flask and SQLAlchemy on PostgreSQL, and deployed to Google Cloud Run through a
-Cloud Build → Artifact Registry pipeline.
+A small web app for rating Singapore hawker dishes: log what you ate, filter by hawker centre and price,
+and see which stalls rate highest. It has a server-rendered UI, a JSON API, and a tested CI/CD pipeline
+that deploys to Google Cloud Run on every push to `main`.
+
+**Live demo:** https://makan-log-544562288445.asia-southeast1.run.app
+(it scales to zero when idle, so the first request can take around 10 seconds)
+
+## Features
+
+- Browse dishes, filter by hawker centre and maximum price, and sort by rating, price or newest
+- A leaderboard of stalls ranked by average rating, computed in SQL with `GROUP BY` and `AVG`
+- An add-dish form with server-side validation and CSRF protection
+- A read-only JSON API that takes the same filters, with JSON error responses
+- Constraints enforced in the database as well as the app: ratings 1–5, non-negative prices, unique stalls per centre
+
+## Tech stack
 
 | Layer | Local | Production |
 |---|---|---|
-| Web server | `flask run` / `python app.py` | Gunicorn in a Docker container on Cloud Run |
-| Database | SQLite (`instance/makan.db`) | PostgreSQL on a free host (e.g. Neon) |
+| App | Flask 3, SQLAlchemy, Jinja, Bootstrap 5 | same |
+| Web server | `python app.py` (Flask dev server) | Gunicorn in a Docker container on Cloud Run |
+| Database | SQLite (`instance/makan.db`) | PostgreSQL (Neon), via psycopg 3 |
 | Schema | Flask-Migrate (Alembic) migrations in `migrations/` | same, applied on container start |
-| Secrets | `.env` (not in git) | Secret Manager |
+| Secrets | `.env` (not in git) | Google Secret Manager |
+| CI/CD | `pytest` | Cloud Build: test → build → push to Artifact Registry → deploy |
 
-## Pages and API
+```
+git push ──▶ Cloud Build ──▶ pytest ──▶ docker build ──▶ Artifact Registry ──▶ Cloud Run ──▶ PostgreSQL
+                              (a failing test stops the deploy)                  (secrets from Secret Manager)
+```
 
-- `/`: dishes with filters (`centre`, `max_price`, `sort=rating|price|newest`) and a top-stalls leaderboard
-- `/dishes/new`: add a dish (CSRF-protected form)
-- `GET /api/dishes`: same filters, JSON
-- `GET /api/stalls/top`: stalls ranked by average rating (SQL `GROUP BY` + `AVG`)
-- `/health`
+## API
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/dishes` | Dishes as JSON. Optional `centre`, `max_price`, `sort=rating\|price\|newest` (up to 200) |
+| `GET /api/stalls/top` | Top 5 stalls by average rating, with dish counts |
+| `GET /health` | Health check |
+
+```bash
+curl "https://makan-log-544562288445.asia-southeast1.run.app/api/dishes?max_price=5&sort=price"
+```
+
+Invalid input returns a JSON error, for example `400 {"error": "Bad Request", "message": "max_price must be a number."}`.
+
+## Project layout
+
+```
+app.py            app factory, models (Stall 1─* Dish), queries, routes, `flask seed` command
+seed.py           random starter data (made-up stalls at real hawker centres)
+migrations/       Alembic migrations
+templates/        Jinja templates (Bootstrap 5)
+tests/            pytest suite, run against in-memory SQLite
+Dockerfile        production image (non-root user, Gunicorn)
+cloudbuild.yaml   CI/CD pipeline
+```
 
 ## Run locally
 
-```zsh
+```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 flask --app app db upgrade     # create tables
-flask --app app seed           # 12 random starter dishes (only if empty)
+flask --app app seed           # 12 random starter dishes (only if the table is empty)
 python app.py                  # http://127.0.0.1:8080
 python -m pytest               # tests
 ```
 
-After changing a model: `flask --app app db migrate -m "describe change"` then `flask --app app db upgrade`.
+After changing a model, run `flask --app app db migrate -m "describe change"`, then `flask --app app db upgrade`.
 
 ## Deploy to Google Cloud (one-time setup)
 
@@ -88,11 +126,14 @@ Cloud Build GitHub app on the `makan-log` repo only, then **Create trigger**:
 From then on every `git push` to `main` runs **test → build → push → deploy**. Failing tests stop the
 pipeline before anything is deployed. The service URL appears under **Cloud Run → makan-log**.
 
-## Notes
+## Design notes
 
-- The app is public (`--allow-unauthenticated`) and anyone with the link can add dishes. Don't put
-  anything personal in it.
+- The demo is public (`--allow-unauthenticated`), so anyone with the link can add dishes.
 - `--max-instances=1` keeps it inside the free database's connection limit and stops two containers
   running migrations at once.
 - The pipeline tags images with `$SHORT_SHA`, which only exists for trigger builds. For a manual run, use
   `gcloud builds submit --substitutions=SHORT_SHA=manual1`.
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
