@@ -3,7 +3,7 @@
 <div class="row g-4">
   <div class="col-lg-8">
     <form class="row g-2 align-items-end mb-3" method="get">
-      <div class="col-sm-5">
+      <div class="col-md-4">
         <label class="form-label small" for="centre">Hawker centre</label>
         <select class="form-select" id="centre" name="centre">
           <option value="">All</option>
@@ -12,12 +12,12 @@
           {% endfor %}
         </select>
       </div>
-      <div class="col-sm-3">
+      <div class="col-6 col-md-3">
         <label class="form-label small" for="max_price">Max price</label>
         <input class="form-control" id="max_price" name="max_price" type="number" min="0" step="0.5"
                value="{{ filters.get('max_price', '') }}" placeholder="Any">
       </div>
-      <div class="col-sm-2">
+      <div class="col-6 col-md-3">
         <label class="form-label small" for="sort">Sort</label>
         <select class="form-select" id="sort" name="sort">
           {% for key, label in sorts.items() %}
@@ -25,7 +25,7 @@
           {% endfor %}
         </select>
       </div>
-      <div class="col-sm-2"><button class="btn btn-outline-primary w-100">Filter</button></div>
+      <div class="col-md-2"><button class="btn btn-outline-primary w-100">Filter</button></div>
     </form>
 
     <div class="list-group">

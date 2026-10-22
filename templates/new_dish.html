@@ -11,7 +11,9 @@
           <div class="col-sm-6"><label class="form-label" for="stall">Stall</label>
             <input class="form-control" id="stall" name="stall" maxlength="120" required value="{{ form.get('stall', '') }}"></div>
           <div class="col-sm-6"><label class="form-label" for="hawker_centre">Hawker centre</label>
-            <input class="form-control" id="hawker_centre" name="hawker_centre" maxlength="120" required value="{{ form.get('hawker_centre', '') }}"></div>
+            <input class="form-control" id="hawker_centre" name="hawker_centre" maxlength="120" required list="centre-options"
+                   value="{{ form.get('hawker_centre', '') }}">
+            <datalist id="centre-options">{% for centre in centres %}<option value="{{ centre }}">{% endfor %}</datalist></div>
           <div class="col-sm-6"><label class="form-label" for="dish">Dish</label>
             <input class="form-control" id="dish" name="dish" maxlength="120" required value="{{ form.get('dish', '') }}"></div>
           <div class="col-sm-6"><label class="form-label" for="cuisine">Cuisine</label>

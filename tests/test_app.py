@@ -105,3 +105,15 @@ def test_forms_require_csrf_token_outside_tests():
         db.create_all()
         assert app.test_client().post("/dishes/new", data=dish()).status_code == 400
         assert Dish.query.count() == 0
+
+
+def test_api_errors_are_json(client):
+    response = client.get("/api/dishes?max_price=lots")
+    assert response.status_code == 400 and response.json["message"] == "max_price must be a number."
+    assert client.get("/api/nope").json["error"] == "Not Found"
+    assert client.get("/nope").mimetype == "text/html"
+
+
+def test_add_form_suggests_existing_centres(client):
+    client.post("/dishes/new", data=dish(centre="Tiong Bahru Market"))
+    assert b'<option value="Tiong Bahru Market">' in client.get("/dishes/new").data

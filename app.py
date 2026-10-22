@@ -13,6 +13,7 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import func
+from werkzeug.exceptions import HTTPException
 
 load_dotenv()
 db = SQLAlchemy()
@@ -85,6 +86,10 @@ def stall_leaderboard(limit=5):
             .limit(limit).all())
 
 
+def hawker_centres():
+    return [row[0] for row in db.session.query(Stall.hawker_centre).distinct().order_by(Stall.hawker_centre)]
+
+
 def parse_dish_form(form):
     """Validate the add-dish form; returns cleaned values or raises ValueError."""
     values = {key: (form.get(key) or "").strip() for key in
@@ -129,15 +134,21 @@ def create_app(test_config=None):
     csrf.init_app(app)
     app.json.compact = False  # indented JSON, readable when the API is opened in a browser
 
+    @app.errorhandler(HTTPException)
+    def handle_http_error(error):
+        """API clients get JSON errors; pages keep Flask's default HTML error page."""
+        if request.path.startswith("/api/"):
+            return jsonify(error=error.name, message=error.description), error.code
+        return error
+
     @app.template_filter("sgd")
     def sgd(value):
         return f"${Decimal(str(value)):,.2f}"
 
     @app.get("/")
     def index():
-        dishes = filtered_dishes(request.args).all()
-        centres = [row[0] for row in db.session.query(Stall.hawker_centre).distinct().order_by(Stall.hawker_centre)]
-        return render_template("index.html", dishes=dishes, leaderboard=stall_leaderboard(), centres=centres,
+        dishes = filtered_dishes(request.args).limit(200).all()
+        return render_template("index.html", dishes=dishes, leaderboard=stall_leaderboard(), centres=hawker_centres(),
                                sorts=SORTS, filters=request.args,
                                api_filters={key: value for key, value in request.args.items() if value})
 
@@ -150,8 +161,8 @@ def create_app(test_config=None):
                 return redirect(url_for("index", sort="newest"))
             except ValueError as error:
                 flash(str(error), "danger")
-                return render_template("new_dish.html", form=request.form), 400
-        return render_template("new_dish.html", form={})
+                return render_template("new_dish.html", form=request.form, centres=hawker_centres()), 400
+        return render_template("new_dish.html", form={}, centres=hawker_centres())
 
     @app.get("/api/dishes")
     def api_dishes():
