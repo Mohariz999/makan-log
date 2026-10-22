@@ -14,6 +14,7 @@ that deploys to Google Cloud Run on every push to `main`.
 - An add-dish form with server-side validation and CSRF protection
 - A read-only JSON API that takes the same filters, with JSON error responses
 - Constraints enforced in the database as well as the app: ratings 1–5, non-negative prices, unique stalls per centre
+- Application logging: added and rejected dishes are logged, and appear in Cloud Logging alongside Cloud Run's request logs
 
 ## Tech stack
 

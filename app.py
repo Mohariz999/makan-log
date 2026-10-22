@@ -1,6 +1,7 @@
 """Makan Log: rate hawker dishes. Flask + SQLAlchemy, PostgreSQL in production, SQLite locally."""
 from __future__ import annotations
 
+import logging
 import os
 import secrets
 from datetime import datetime, timezone
@@ -132,6 +133,7 @@ def create_app(test_config=None):
     db.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
+    app.logger.setLevel(logging.INFO)  # stderr is collected by Cloud Run's logging
     app.json.compact = False  # indented JSON, readable when the API is opened in a browser
 
     @app.errorhandler(HTTPException)
@@ -157,9 +159,12 @@ def create_app(test_config=None):
         if request.method == "POST":
             try:
                 dish = add_dish(parse_dish_form(request.form))
+                app.logger.info("Dish added: id=%s dish=%r stall=%r centre=%r rating=%s price=%s",
+                                dish.id, dish.name, dish.stall.name, dish.stall.hawker_centre, dish.rating, dish.price)
                 flash(f"Added {dish.name} from {dish.stall.name}.", "success")
                 return redirect(url_for("index", sort="newest"))
             except ValueError as error:
+                app.logger.info("Dish rejected: %s", error)
                 flash(str(error), "danger")
                 return render_template("new_dish.html", form=request.form, centres=hawker_centres()), 400
         return render_template("new_dish.html", form={}, centres=hawker_centres())

@@ -117,3 +117,11 @@ def test_api_errors_are_json(client):
 def test_add_form_suggests_existing_centres(client):
     client.post("/dishes/new", data=dish(centre="Tiong Bahru Market"))
     assert b'<option value="Tiong Bahru Market">' in client.get("/dishes/new").data
+
+
+def test_adding_and_rejecting_dishes_is_logged(client, caplog):
+    with caplog.at_level("INFO"):
+        client.post("/dishes/new", data=dish())
+        client.post("/dishes/new", data=dish(rating="9"))
+    assert "Dish added: id=1 dish='Chicken rice' stall='Ah Seng'" in caplog.text
+    assert "Dish rejected: Rating must be 1 to 5." in caplog.text
